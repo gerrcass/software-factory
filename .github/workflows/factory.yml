@@ -1,0 +1,56 @@
+name: Factory
+
+# Started by the app repos when an issue gets the ready label. Can also be
+# started by hand from the Actions tab.
+on:
+  repository_dispatch:
+    types: [issue-ready]
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: App repo, for example owner/name
+        required: true
+      issue:
+        description: Issue number
+        required: true
+
+permissions:
+  contents: read
+
+# One run per issue at a time. A second run for the same issue waits, then
+# finds the ready label gone and stops.
+concurrency:
+  group: "issue-${{ github.event.client_payload.repo || inputs.repo }}-${{ github.event.client_payload.issue || inputs.issue }}"
+  cancel-in-progress: false
+
+run-name: "${{ github.event.client_payload.repo || inputs.repo }} #${{ github.event.client_payload.issue || inputs.issue }}"
+
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    # Must stay above the worst case in factory.config.json: waiting for a worker,
+    # setup, two agent runs and two rounds of checks. scripts/check-setup.mjs
+    # does the sum. A run that hits this limit skips its cleanup.
+    timeout-minutes: 150
+    env:
+      FACTORY_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
+      FACTORY_ISSUE: ${{ github.event.client_payload.issue || inputs.issue }}
+      UPSTASH_BOX_API_KEY: ${{ secrets.UPSTASH_BOX_API_KEY }}
+      FACTORY_GITHUB_TOKEN: ${{ secrets.FACTORY_GITHUB_TOKEN }}
+      # Every secret as one JSON blob. The agents' sign-in secrets are read from
+      # it by name, so adding an agent never means editing this file.
+      FACTORY_SECRETS_JSON: ${{ toJSON(secrets) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Show the plan
+        run: node src/plan.mjs
+      # Set the repo variable FACTORY_DRY_RUN to true to stop after the plan. Useful
+      # while proving the trigger, before any agent is allowed to run.
+      - name: Do the work and open a pull request
+        if: vars.FACTORY_DRY_RUN != 'true'
+        run: node src/run.mjs

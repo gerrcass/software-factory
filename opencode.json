@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "upstash": {
+      "type": "remote",
+      "url": "https://mcp.upstash.com/mcp",
+      "enabled": true
+    }
+  }
+}

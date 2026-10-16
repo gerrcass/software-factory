@@ -1,0 +1,93 @@
+{
+  "factory": {
+    "repo": "gerrcass/software-factory",
+    "boxNamePrefix": "sfac-",
+    "boxLabel": "sfac",
+    "busyLabel": "busy",
+    "branchPrefix": "factory/issue-",
+    "gitAuthor": {
+      "name": "Software Factory (AI)",
+      "email": "34238944+gerrcass@users.noreply.github.com"
+    },
+    "allowedActors": [
+      "gerrcass"
+    ],
+    "boxLimit": 10,
+    "browser": true,
+    "waitForWorkerMinutes": 20,
+    "agentTimeoutMinutes": 25,
+    "commandTimeoutMinutes": 15
+  },
+  "labels": {
+    "ready": "ready",
+    "running": "factory:running",
+    "review": "factory:review",
+    "needsAttention": "factory:needs-attention"
+  },
+  "agents": {
+    "opencode": {
+      "description": "OpenCode CLI with an OpenCode Go subscription. The key goes in .env and the factory repo's GitHub secrets as OPENCODE_API_KEY. The CLI itself is installed by the worker image (worker/setup.sh), not by the stock Box.",
+      "auth": [
+        {
+          "secret": "OPENCODE_API_KEY",
+          "env": "OPENCODE_API_KEY"
+        }
+      ],
+      "env": {
+        "OPENCODE_DISABLE_AUTOUPDATE": "1"
+      },
+      "boxSettings": [
+        {
+          "path": "/home/boxuser/.config/opencode/opencode.json",
+          "format": "json",
+          "values": {
+            "model": "opencode-go/deepseek-v4.1-flash",
+            "update": "disable"
+          }
+        }
+      ],
+      "command": "opencode run --standalone --auto \"$(cat {prompt})\" > {summary}"
+    }
+  },
+  "repos": [
+    {
+      "repo": "gerrcass/taskboard",
+      "baseBranch": "main",
+      "setup": [
+        "npm ci"
+      ],
+      "checks": [
+        "npm run lint",
+        "npm run test",
+        "npm run build"
+      ],
+      "exclude": []
+    }
+  ],
+  "workers": [
+    {
+      "id": "opencode-01",
+      "agent": "opencode",
+      "enabled": true,
+      "gitAuthorName": "Nova (AI agent)"
+    },
+    {
+      "id": "opencode-02",
+      "agent": "opencode",
+      "enabled": true,
+      "gitAuthorName": "Pixel (AI agent)"
+    },
+    {
+      "id": "opencode-03",
+      "agent": "opencode",
+      "enabled": true,
+      "gitAuthorName": "Volt (AI agent)"
+    },
+    {
+      "id": "opencode-04",
+      "agent": "opencode",
+      "enabled": true,
+      "gitAuthorName": "Quill (AI agent)"
+    }
+  ]
+}

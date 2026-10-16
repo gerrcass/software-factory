@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+node_modules/
+
+# Local agent tooling (the create-upstash-software-factory skill and its lockfile)
+.agents/
+skills-lock.json

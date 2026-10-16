@@ -1,0 +1,13 @@
+[
+  {
+    "repo": "OWNER/APP-REPO",
+    "title": "A small, self-contained feature",
+    "body": "One or two sentences on what is wanted and why.\n\n- An acceptance point the agent can check.\n- Another one.\n- Name the checks that must keep passing, if the repo has any."
+  },
+  {
+    "repo": "OWNER/APP-REPO",
+    "title": "A second feature, forced onto one agent type",
+    "labels": ["agent:codex"],
+    "body": "Same shape as above. The labels list is optional."
+  }
+]
