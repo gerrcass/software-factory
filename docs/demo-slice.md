@@ -26,7 +26,7 @@ before merge, per the workflow in `docs/guide.md`:
 
 | Issue | Title | Status |
 |---|---|---|
-| [#12](https://github.com/gerrcass/taskboard/issues/12) | Due dates for tasks | running first — everything else depends on the field it adds |
+| [#12](https://github.com/gerrcass/taskboard/issues/12) | Due dates for tasks | **merged** (PR #16) after one review iteration — first attempt's form layout was sent back, second run fixed it |
 | [#13](https://github.com/gerrcass/taskboard/issues/13) | Order the columns: priority, then due date | queued: joins the burst once #12 merges |
 | [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | queued: joins the burst once #12 merges |
 | [#15](https://github.com/gerrcass/taskboard/issues/15) | Header callout for overdue work | queued: joins the burst once #12 merges |
