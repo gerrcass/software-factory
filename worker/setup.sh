@@ -9,6 +9,9 @@
 # Facts about a Box: Debian 12 on ARM64, user "boxuser" with passwordless sudo,
 # Node, git, Claude Code and Codex already installed. The stock image has no
 # OpenCode CLI, so the factory's workers get it from here.
+#
+# scripts/build-snapshot.mjs uploads the factory repo's worker/skills/ tree to
+# /workspace/home/.image-build/skills/ before this script runs.
 set -euo pipefail
 
 # --- OpenCode CLI ------------------------------------------------------------
@@ -28,31 +31,41 @@ sudo tee /etc/profile.d/opencode.sh > /dev/null <<'PROFILE'
 export PATH="$HOME/.opencode/bin:$PATH"
 PROFILE
 
-# --- Agent skills (example) ------------------------------------------------
-# Install OpenCode skills globally with, for example:
-#   npx -y skills@latest add <owner>/<repo> --skill <name> --global --agent opencode --copy --yes
-# OpenCode reads project skills from .opencode/skills and global ones from
-# ~/.config/opencode/skills. Keep the versions this image was tested with.
+# --- Agent skills (vendored in the factory repo, copied into the image) -----
+# worker/AGENTS.md points the agent at these. Global skills apply in every repo;
+# a skill that changes under you changes the agent's behaviour, so they are
+# pinned by being copied here from a reviewed source in this repo.
+echo "--- skills"
+mkdir -p "$HOME/.config/opencode/skills"
+cp -r /workspace/home/.image-build/skills/frontend-design "$HOME/.config/opencode/skills/"
+cp -r /workspace/home/.image-build/skills/before-and-after "$HOME/.config/opencode/skills/"
 
-# --- A browser tool for agents that check their own work (example) ----------
-# The Box itself has browser access ("browser": true in factory.config.json,
-# the default): Upstash runs a Chromium that the factory starts before each job
-# and that then listens on port 9222. This installs the tool the agent drives it
-# with. Build this image in a Box that has browser access, because every Box
-# made from the image gets the browser access of the Box it was built in.
-#
-# Auto-connect makes agent-browser attach to Upstash's Chromium, so the Upstash
-# console shows what the agent does. With auto-connect on and no Chromium
-# running it fails instead of starting one, so it is switched on only when port
-# 9222 answers. Otherwise agent-browser starts Debian's Chromium (Chrome has no
-# ARM64 Linux download).
-# sudo apt-get update -qq
-# sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq chromium > /dev/null
-# sudo npm install --global --silent agent-browser
-# sudo tee /etc/profile.d/agent-browser.sh > /dev/null <<'PROFILE'
-# export AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
-# if (exec 3<>/dev/tcp/127.0.0.1/9222) 2>/dev/null; then export AGENT_BROWSER_AUTO_CONNECT=1; fi
-# PROFILE
+# --- Browser tooling for agents that check their own work --------------------
+# The Box itself has browser access ("browser": true in factory.config.json):
+# Upstash runs a Chromium that the factory starts before each job and that then
+# listens on port 9222. agent-browser attaches to it, so the Upstash console
+# shows what the agent does. Chrome for Testing has no ARM64 Linux build, so
+# Debian's chromium is the fallback and the auto-connect is switched on only
+# when the port answers. ffmpeg is for agent-browser's recordings.
+echo "--- browser"
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq chromium ffmpeg > /dev/null
+sudo npm install --global --silent agent-browser
+# npm's script policy can skip the package's postinstall, which is what leaves
+# the native binary executable; run it and chmod as a belt-and-braces fallback.
+# The check below fails the build if agent-browser still cannot run.
+sudo node "$(npm root -g)/agent-browser/scripts/postinstall.js" > /dev/null 2>&1 || true
+sudo chmod +x "$(npm root -g)/agent-browser/bin/"* 2>/dev/null || true
+sudo tee /etc/profile.d/agent-browser.sh > /dev/null <<'PROFILE'
+export AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
+if (exec 3<>/dev/tcp/127.0.0.1/9222) 2>/dev/null; then export AGENT_BROWSER_AUTO_CONNECT=1; fi
+PROFILE
+
+# --- MCP servers (example) ---------------------------------------------------
+# Configure under mcp.servers in the agent's boxSettings, with keys passed per
+# job through the agent type's "auth" entries. Headless Boxes cannot complete
+# an OAuth sign-in, so prefer API-key or local servers. See
+# docs/worker-environment.md in the factory repo.
 
 # --- Check ---------------------------------------------------------------------
 # The build log is the only evidence of what is in the image, and the build
@@ -73,3 +86,10 @@ case "$login_version" in
   *2.0.31*) echo "ok: the agent's login shell gets the pinned OpenCode" ;;
   *) echo "ERROR: a login shell does not resolve the pinned OpenCode (wanted 2.0.31, got: $login_version)" >&2; exit 1 ;;
 esac
+echo "agent-browser: $(command -v agent-browser) ($(agent-browser --version 2>&1 | head -n 1))"
+chromium --version
+ffmpeg -version 2>/dev/null | head -n 1
+ls "$HOME/.config/opencode/skills"
+test -f "$HOME/.config/opencode/skills/frontend-design/SKILL.md"
+test -f "$HOME/.config/opencode/skills/before-and-after/SKILL.md"
+echo "ok: skills are in the image"

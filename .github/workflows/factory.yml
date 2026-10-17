@@ -31,7 +31,7 @@ jobs:
     # Must stay above the worst case in factory.config.json: waiting for a worker,
     # setup, two agent runs and two rounds of checks. scripts/check-setup.mjs
     # does the sum. A run that hits this limit skips its cleanup.
-    timeout-minutes: 150
+    timeout-minutes: 180
     env:
       FACTORY_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
       FACTORY_ISSUE: ${{ github.event.client_payload.issue || inputs.issue }}

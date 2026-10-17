@@ -15,7 +15,7 @@
     "boxLimit": 10,
     "browser": true,
     "waitForWorkerMinutes": 20,
-    "agentTimeoutMinutes": 25,
+    "agentTimeoutMinutes": 35,
     "commandTimeoutMinutes": 15
   },
   "labels": {
@@ -26,7 +26,7 @@
   },
   "agents": {
     "opencode": {
-      "description": "OpenCode CLI with an OpenCode Go subscription. The key goes in .env and the factory repo's GitHub secrets as OPENCODE_API_KEY. The CLI itself is installed by the worker image (worker/setup.sh), not by the stock Box.",
+      "description": "OpenCode CLI with an OpenCode Go subscription. The key goes in .env and the factory repo's GitHub secrets as OPENCODE_API_KEY. The CLI, agent-browser, chromium, ffmpeg and the vendored skills are installed by the worker image (worker/setup.sh), not by the stock Box.",
       "auth": [
         {
           "secret": "OPENCODE_API_KEY",
@@ -36,6 +36,12 @@
       "env": {
         "OPENCODE_DISABLE_AUTOUPDATE": "1"
       },
+      "jobFiles": [
+        {
+          "from": "worker/AGENTS.md",
+          "to": "/home/boxuser/.config/opencode/AGENTS.md"
+        }
+      ],
       "boxSettings": [
         {
           "path": "/home/boxuser/.config/opencode/opencode.json",

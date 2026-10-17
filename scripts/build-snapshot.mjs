@@ -11,7 +11,7 @@
 // agent type, saved as factory.snapshotId.
 //
 // The worker needs a Box. Create one with: scripts/provision-workers.mjs <worker id> --yes
-import { readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { Box } from "@upstash/box"
 import { loadConfig, boxNameFor } from "../src/config.mjs"
 import { sh, runScript, applyBoxSettings, describeBoxSettings, requireBoxSettings, wantsBrowser, hasBrowser } from "../src/box.mjs"
@@ -25,6 +25,25 @@ const shared = process.argv.includes("--shared")
 // Text that gives away a secret. factory.secretScanPatterns ADDS to this list,
 // for agents whose credentials look different.
 const SECRET_PATTERNS = ["github_pat_", "ghp_", "gho_", "sk-ant-", "sk-proj-", "sk-svcacct-", "sk-or-", '"refresh_token"', ...(config.factory.secretScanPatterns ?? [])]
+
+// Uploads the factory repo's worker/skills/ tree next to setup.sh, so the
+// script can copy skills into the image. Text files only.
+async function uploadSkills(box, skillsUrl) {
+  if (!existsSync(skillsUrl)) return 0
+  let count = 0
+  async function walk(dirUrl, target) {
+    for (const entry of readdirSync(dirUrl, { withFileTypes: true })) {
+      const childUrl = new URL(entry.name + (entry.isDirectory() ? "/" : ""), dirUrl)
+      if (entry.isDirectory()) await walk(childUrl, `${target}/${entry.name}`)
+      else {
+        await box.files.write({ path: `${target}/${entry.name}`, content: readFileSync(childUrl, "utf8") })
+        count += 1
+      }
+    }
+  }
+  await walk(skillsUrl, "/workspace/home/.image-build/skills")
+  return count
+}
 
 const workerId = process.argv.slice(2).find((a) => !a.startsWith("--"))
 const worker = (await getWorkerStates(config)).find((w) => w.id === workerId)
@@ -59,6 +78,8 @@ try {
     throw new Error(`${boxNameFor(config, worker)} was created without browser access, and the image would pass that on to every worker. Browser access cannot be added to an existing Box. The user deletes this one (scripts/delete-workers.mjs ${workerId} --yes), then create it again as a plain Box: scripts/provision-workers.mjs ${workerId} --yes, with any snapshotId removed from factory.config.json first if the old image was built the same way. Or set "browser": false under "factory". No snapshot was taken.`)
   }
 
+  const skillCount = await uploadSkills(box, new URL("worker/skills/", config.baseUrl))
+  if (skillCount) console.log(`Uploaded ${skillCount} skill file(s) for the image.`)
   const setup = readFileSync(new URL(setupPath, config.baseUrl), "utf8").replace(/\r\n/g, "\n")
   await box.files.write({ path: "/workspace/home/.image-build/setup.sh", content: setup })
   const result = await runScript(box, {

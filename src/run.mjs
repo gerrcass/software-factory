@@ -5,10 +5,21 @@ import { loadConfig, findRepo } from "./config.mjs"
 import { getIssue, getHumanComments, addLabels, removeLabel, comment, openPullRequest } from "./github.mjs"
 import { claimWorker, releaseWorker, sh, q, runScript, startBrowser } from "./box.mjs"
 import { signIn, writeJobFiles, writeRepoEnv, runAgent, secretPaths, REPO_ENV_FILE } from "./agents.mjs"
+import { spawnSync } from "node:child_process"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { fileURLToPath } from "node:url"
 
 const WORK_DIR = "/workspace/home/work"
 const NO_STORE = "-c credential.helper="
 const NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION:"
+// Where the agent leaves visual proof (see worker/AGENTS.md). The factory
+// publishes it to the pull request; the folder is inside the job's sign-in
+// cleanup path, so nothing survives the job either way.
+const PROOF_DIR = "/workspace/home/.factory/artifacts"
+const MAX_PROOF_BYTES = 8 * 1024 * 1024
+const PROOF_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".mov", ".webm"])
 
 const [repoName = process.env.FACTORY_REPO, issueNumber = process.env.FACTORY_ISSUE] = process.argv.slice(2)
 const runId = process.env.GITHUB_RUN_ID ?? `local${Date.now().toString().slice(-9)}`
@@ -46,6 +57,69 @@ ${extra}`
 }
 
 const details = (title, text) => `<details><summary>${title}</summary>\n\n\`\`\`\n${hideToken(text).slice(-3000)}\n\`\`\`\n\n</details>`
+
+// Attaches the visual proof the agent left in the Box to the pull request.
+// The files come over as base64, the before-and-after skill's formatter builds
+// its marked block, and `gh pr edit --attach` uploads the media to GitHub and
+// rewrites the local references to attachment URLs, which render as images
+// (side-by-side tables) and videos (playable). A failure here never fails the
+// run: the pull request is already open, and the log says what happened.
+async function publishProof(box, repo, prNumber, prBody) {
+  const listing = (await sh(box, `ls -1 ${PROOF_DIR} 2>/dev/null`, { allowFailure: true })).output.trim()
+  const names = listing ? listing.split("\n").map((line) => line.trim()).filter(Boolean) : []
+  const kept = []
+  for (const name of names) {
+    if (!/^[A-Za-z0-9._-]+$/.test(name)) continue
+    if (!PROOF_EXTENSIONS.has(name.slice(name.lastIndexOf(".")).toLowerCase())) continue
+    const size = Number((await sh(box, `stat -c %s ${q(`${PROOF_DIR}/${name}`)} 2>/dev/null || echo 0`, { allowFailure: true })).output.trim())
+    if (size > 0 && size <= MAX_PROOF_BYTES) kept.push(name)
+    else console.log(`  proof: skipping ${name} (${size || "unknown"} bytes)`)
+  }
+  if (!kept.length) return 0
+
+  const dir = mkdtempSync(join(tmpdir(), "factory-proof-"))
+  for (const name of kept) {
+    const base64 = (await sh(box, `base64 -w0 ${q(`${PROOF_DIR}/${name}`)}`)).output.replace(/\s+/g, "")
+    writeFileSync(join(dir, name), Buffer.from(base64, "base64"))
+  }
+
+  // "name-before.ext" pairs with "name-after.ext" side by side. Any other
+  // supported file is a preview of its own.
+  const pairs = []
+  const paired = new Set()
+  for (const name of kept) {
+    const match = /^(.*)-before(\.[a-z0-9]+)$/i.exec(name)
+    const after = match ? `${match[1]}-after${match[2]}` : null
+    if (after && kept.includes(after) && !paired.has(after)) {
+      paired.add(name)
+      paired.add(after)
+      pairs.push({ before: name, after, label: match[1].replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase()) })
+    }
+  }
+  for (const name of kept) if (!paired.has(name)) pairs.push({ before: null, after: name, label: null })
+
+  const mediaArgs = pairs.flatMap((pair) => [
+    ...(pair.before ? ["--before", pair.before] : []),
+    "--after", pair.after,
+    ...(pair.label ? ["--label", pair.label] : []),
+  ])
+  const formatter = fileURLToPath(new URL("../worker/skills/before-and-after/scripts/format.mjs", import.meta.url))
+  const bodyFile = join(dir, "pr-body.md")
+  writeFileSync(bodyFile, prBody)
+  const format = spawnSync("node", [formatter, "--body-file", bodyFile, ...mediaArgs], { cwd: dir, encoding: "utf8" })
+  if (format.status !== 0) throw new Error(`format.mjs: ${format.stderr.trim()}`)
+  writeFileSync(join(dir, "pr-body-next.md"), format.stdout)
+  const attachList = spawnSync("node", [formatter, "--attach-list", ...mediaArgs], { cwd: dir, encoding: "utf8" })
+  if (attachList.status !== 0) throw new Error(`format.mjs --attach-list: ${attachList.stderr.trim()}`)
+  const attachArgs = attachList.stdout.split("\n").map((line) => line.trim()).filter(Boolean).flatMap((file) => ["--attach", file])
+  const edit = spawnSync("gh", ["pr", "edit", String(prNumber), "--repo", repo, "--body-file", "pr-body-next.md", ...attachArgs], {
+    cwd: dir,
+    encoding: "utf8",
+    env: { ...process.env, GH_TOKEN: process.env.FACTORY_GITHUB_TOKEN },
+  })
+  if (edit.status !== 0) throw new Error(`gh pr edit --attach: ${edit.stderr.trim()}`)
+  return kept.length
+}
 
 // All commands of one kind run as one bash login script, so a line like
 // `source .venv/bin/activate` still applies to the lines after it, and tools
@@ -125,7 +199,7 @@ async function main() {
     // The Box image tells git to save credentials on disk. NO_STORE switches that
     // off for our commands, and any saved file is removed, so the agent cannot
     // find the GitHub token.
-    await sh(box, `rm -rf ${q(repoDir)} ${jobDir} ~/.git-credentials && mkdir -p ${jobDir}`)
+    await sh(box, `rm -rf ${q(repoDir)} ${jobDir} ${q(PROOF_DIR)} ~/.git-credentials && mkdir -p ${jobDir}`)
     await sh(box, `git ${NO_STORE} clone --quiet --depth 50 --branch ${q(repo.baseBranch)} ${q(authedUrl)} ${q(repoDir)}`)
     // The token is removed from the clone here and only used again for the push.
     // The committer name can be a recognisable AI persona per worker
@@ -196,13 +270,20 @@ async function main() {
     await sh(box, `cd ${q(repoDir)} && git ${NO_STORE} push --quiet --force ${q(authedUrl)} ${q(`${branch}:${branch}`)}`)
 
     const checkLine = repo.checks.length ? `Checks passed: ${repo.checks.map((c) => `\`${c}\``).join(", ")}.` : "This repo has no automated checks."
+    const prBody = `Closes #${issue.number}\n\n${result.summary || "(The agent gave no summary.)"}\n\n---\nBuilt by factory worker \`${worker.id}\` (${worker.agent}) in an Upstash Box. ${checkLine}${runUrl ? ` [Factory run](${runUrl}).` : ""}`
     const pr = await openPullRequest(repo.repo, {
       head: branch,
       base: repo.baseBranch,
       title,
-      body: `Closes #${issue.number}\n\n${result.summary || "(The agent gave no summary.)"}\n\n---\nBuilt by factory worker \`${worker.id}\` (${worker.agent}) in an Upstash Box. ${checkLine}${runUrl ? ` [Factory run](${runUrl}).` : ""}`,
+      body: prBody,
     })
     console.log(`\nPull request: ${pr.html_url}`)
+    try {
+      const attached = await publishProof(box, repo.repo, pr.number, prBody)
+      if (attached) console.log(`Attached ${attached} visual-proof file(s) to the pull request.`)
+    } catch (error) {
+      console.warn(`Visual proof was not attached: ${error.message}`)
+    }
 
     await removeLabel(repo.repo, issue.number, labels.running)
     await addLabels(repo.repo, issue.number, [labels.review])
