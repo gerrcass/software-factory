@@ -43,8 +43,23 @@ filter bar (status / priority / overdue), and an overdue callout in the
 header — the first slice where the browser-capable workers and the
 visual-proof pipeline do the real work.
 
+## Slice 3 — A board you can trust: underway
+
+Created as taskboard issues **#20–#23**:
+
+| Issue | Title | Status |
+|---|---|---|
+| [#20](https://github.com/gerrcass/taskboard/issues/20) | Undo a deleted task | wave 1 |
+| [#21](https://github.com/gerrcass/taskboard/issues/21) | Undo Clear done | staged after #20 merges |
+| [#22](https://github.com/gerrcass/taskboard/issues/22) | Move tasks between columns with the keyboard | wave 1 |
+| [#23](https://github.com/gerrcass/taskboard/issues/23) | Import the board from an exported JSON file | wave 1 |
+
+The slice: recover from mistakes (undo single deletes and Clear done), operate
+the board without a mouse (keyboard moves), and restore a backup (import an
+export). Wave 1 runs #20, #22 and #23 in parallel; #21 is held back so it can
+reuse #20's undo pattern instead of racing it.
+
 ## Next slices (for later)
 
-1. **A board you can trust:** undo delete, keyboard moves between columns.
-2. **More than one board:** a board switcher over the same storage.
-3. **Polish:** dark-mode toggle, drag-and-drop, empty-state art.
+1. **More than one board:** a board switcher over the same storage.
+2. **Polish:** dark-mode toggle, drag-and-drop, empty-state art.
