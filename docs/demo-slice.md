@@ -1,4 +1,4 @@
-# Demo slice: "Board control" (delivered) and "Dates and focus" (prepared)
+# Demo slice: "Board control" (delivered) and "Dates and focus" (in progress)
 
 ## Slice 1 — Board control: delivered and closed
 
@@ -18,14 +18,18 @@ download fix came from a reviewer finding posted as an issue comment). The
 final #10 also carries the upgraded harness's visual proof: before/after
 tables and an embedded recording.
 
-## Slice 2 — Dates and focus: prepared, not started
+## Slice 2 — Dates and focus: in progress
 
-The four issues are written and waiting in `scripts/demo-issues.json`; no
-issue has been created or labelled yet, so nothing is pending anywhere. To
-launch it: create the issues, run **#7 Due dates** alone first (everything
-else depends on the field it adds), then label the remaining three as a
-parallel burst — each reviewed by subagents before merge, per the workflow
-in `docs/guide.md`.
+Created as taskboard issues **#12–#15** (the slice-1 pull requests had
+already used the numbers 7–11). Staged rollout, each PR reviewed by subagents
+before merge, per the workflow in `docs/guide.md`:
+
+| Issue | Title | Status |
+|---|---|---|
+| [#12](https://github.com/gerrcass/taskboard/issues/12) | Due dates for tasks | running first — everything else depends on the field it adds |
+| [#13](https://github.com/gerrcass/taskboard/issues/13) | Order the columns: priority, then due date | queued: joins the burst once #12 merges |
+| [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | queued: joins the burst once #12 merges |
+| [#15](https://github.com/gerrcass/taskboard/issues/15) | Header callout for overdue work | queued: joins the burst once #12 merges |
 
 The slice: due dates on tasks, columns ordered by priority then due date, a
 filter bar (status / priority / overdue), and an overdue callout in the

@@ -12,10 +12,10 @@ burst across four workers, a stale-branch re-run, one review-driven iteration
 live app is at <https://gerrcass.github.io/taskboard/>, redeployed by the
 Pages workflow on every merge to `main`.
 
-Slice 2 ("Dates and focus") is **prepared, not started**: its four issues are
-written in `scripts/demo-issues.json` and the staged rollout is described in
-`docs/demo-slice.md`. Nothing is pending anywhere; launching it is one
-command away.
+Slice 2 ("Dates and focus") is **running**: taskboard issues #12–#15, staged
+so that the due-dates foundation (#12) lands before the other three start,
+with the same subagent review before each merge. Progress lives in
+`docs/demo-slice.md`.
 
 ## Rotate or note
 
