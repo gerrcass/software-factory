@@ -27,9 +27,9 @@ before merge, per the workflow in `docs/guide.md`:
 | Issue | Title | Status |
 |---|---|---|
 | [#12](https://github.com/gerrcass/taskboard/issues/12) | Due dates for tasks | **merged** (PR #16) after one review iteration — first attempt's form layout was sent back, second run fixed it |
-| [#13](https://github.com/gerrcass/taskboard/issues/13) | Order the columns: priority, then due date | queued: joins the burst once #12 merges |
-| [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | queued: joins the burst once #12 merges |
-| [#15](https://github.com/gerrcass/taskboard/issues/15) | Header callout for overdue work | queued: joins the burst once #12 merges |
+| [#13](https://github.com/gerrcass/taskboard/issues/13) | Order the columns: priority, then due date | **merged** (PR #17) — burst, clean review |
+| [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | **iterating** — burst PR #19 went back once (Clear done could delete filtered-out tasks); re-run in flight |
+| [#15](https://github.com/gerrcass/taskboard/issues/15) | Header callout for overdue work | **merged** (PR #18) — burst, clean review |
 
 The first attempt for #12 (run 39062508585) failed for a factory reason, not a
 feature one: a workflow-file change landed on `main` mid-run, and GitHub
