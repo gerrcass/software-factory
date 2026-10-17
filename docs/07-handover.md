@@ -12,10 +12,13 @@ burst across four workers, a stale-branch re-run, one review-driven iteration
 live app is at <https://gerrcass.github.io/taskboard/>, redeployed by the
 Pages workflow on every merge to `main`.
 
-Slice 2 ("Dates and focus") is **running**: taskboard issues #12–#15, staged
-so that the due-dates foundation (#12) lands before the other three start,
-with the same subagent review before each merge. Progress lives in
-`docs/demo-slice.md`.
+Slice 2 ("Dates and focus") is **delivered**: taskboard issues #12–#15 became
+PRs #16–#19, all merged and closed. Every PR was reviewed on both axes by
+subagent pairs; two needed exactly one iteration each (a form-layout
+regression, and a Clear-done interaction that could delete filtered-out
+tasks), and both re-runs passed re-review. Every PR carried before/after
+screenshots and a recording captured in the worker image's browser, and the
+live site redeployed automatically with each merge.
 
 ## Rotate or note
 

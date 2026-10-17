@@ -1,4 +1,4 @@
-# Demo slice: "Board control" (delivered) and "Dates and focus" (in progress)
+# Demo slice: "Board control" (delivered) and "Dates and focus" (delivered)
 
 ## Slice 1 — Board control: delivered and closed
 
@@ -28,7 +28,7 @@ before merge, per the workflow in `docs/guide.md`:
 |---|---|---|
 | [#12](https://github.com/gerrcass/taskboard/issues/12) | Due dates for tasks | **merged** (PR #16) after one review iteration — first attempt's form layout was sent back, second run fixed it |
 | [#13](https://github.com/gerrcass/taskboard/issues/13) | Order the columns: priority, then due date | **merged** (PR #17) — burst, clean review |
-| [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | **iterating** — burst PR #19 went back once (Clear done could delete filtered-out tasks); re-run in flight |
+| [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | **merged** (PR #19) after one iteration — Clear done could delete tasks the filters were hiding; the re-run fixed and passed re-review |
 | [#15](https://github.com/gerrcass/taskboard/issues/15) | Header callout for overdue work | **merged** (PR #18) — burst, clean review |
 
 The first attempt for #12 (run 39062508585) failed for a factory reason, not a
