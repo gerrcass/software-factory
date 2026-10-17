@@ -1,4 +1,4 @@
-# Demo slice: "Board control" (delivered) and "Dates and focus" (delivered)
+# Demo slices: "Board control", "Dates and focus", "A board you can trust" — all delivered
 
 ## Slice 1 — Board control: delivered and closed
 
@@ -43,28 +43,48 @@ filter bar (status / priority / overdue), and an overdue callout in the
 header — the first slice where the browser-capable workers and the
 visual-proof pipeline do the real work.
 
-## Slice 3 — A board you can trust: underway
+## Slice 3 — A board you can trust: delivered
 
-Created as taskboard issues **#20–#23**:
+Created as taskboard issues **#20–#23**; all four PRs merged, all four issues
+closed. Wave 1 ran #20, #22 and #23 in parallel; #21 was staged behind #20 so it
+could reuse the merged undo pattern instead of racing it. Each PR was reviewed
+on both axes by subagent pairs before merge, as in slice 2:
 
-| Issue | Title | Status |
-|---|---|---|
-| [#20](https://github.com/gerrcass/taskboard/issues/20) | Undo a deleted task | **merged** (PR #24) after one review iteration — the first attempt lost focus when the delete button unmounted; the re-run moved focus to the Undo button and made the live region reliable |
-| [#21](https://github.com/gerrcass/taskboard/issues/21) | Undo Clear done | **merged** (PR #27) — clean review; the spec reviewer re-ran lint/test/build itself |
-| [#22](https://github.com/gerrcass/taskboard/issues/22) | Move tasks between columns with the keyboard | iterating — review found a stale focus request that could steal focus later and silent duplicate announcements; the fixes are in the branch, which then went stale against #20's merge and is queued for a fresh re-run |
-| [#23](https://github.com/gerrcass/taskboard/issues/23) | Import the board from an exported JSON file | iterating — review asked for duplicate-id validation and a self-clearing notice; the fix is in, then a stale-branch re-run against #20/#21's merges |
+| Issue | PR | Built by | Outcome |
+|---|---|---|---|
+| [#20](https://github.com/gerrcass/taskboard/issues/20) Undo a deleted task | [#24](https://github.com/gerrcass/taskboard/pull/24) | Volt | merged after one review iteration — the first attempt left focus on the body when the delete button unmounted; the re-run moved focus to the Undo button (with a labelled action) and made the live region reliable |
+| [#21](https://github.com/gerrcass/taskboard/issues/21) Undo Clear done | [#27](https://github.com/gerrcass/taskboard/pull/27) | Volt | merged on a clean review — the spec reviewer reran lint/test/build on a fresh extract |
+| [#22](https://github.com/gerrcass/taskboard/issues/22) Keyboard moves between columns | [#26](https://github.com/gerrcass/taskboard/pull/26) | Pixel | merged after one review iteration (a pending focus request could steal focus later; identical announcements were silent) and two stale-branch re-runs |
+| [#23](https://github.com/gerrcass/taskboard/issues/23) Import the board from JSON | [#25](https://github.com/gerrcass/taskboard/pull/25) | Quill | merged after one review iteration (duplicate ids were accepted; the notice never cleared) and two stale-branch re-runs |
 
 The slice: recover from mistakes (undo single deletes and Clear done), operate
 the board without a mouse (keyboard moves), and restore a backup (import an
-export). Wave 1 ran #20, #22 and #23 in parallel; #21 was held back so it could
-reuse #20's undo pattern instead of racing it.
+export).
 
-A property worth recording: all three parallel PRs edit the same regions of
-`page.tsx`, so every merge makes its siblings stale (`CONFLICTING` on GitHub).
-The factory's answer is the re-run path — re-add `ready` and the next run
-rebuilds the branch on the fresh `main` — so the tail of this slice is one
-merge, one re-run, repeat. That is slower than a rebase button and exactly the
-path the earlier slices documented.
+What this round proved:
+
+- **The review loop keeps finding real defects.** #20, #22 and #23 each went
+  back exactly once with a specific comment; all three re-reviews came back
+  clean. The #23 reviewer ran the three checks itself on the revision.
+- **Parallel work on one file serializes at merge time.** All four PRs edit
+  `page.tsx`, so every merge made its siblings `CONFLICTING` on GitHub. The
+  factory's answer is the stale-PR path: re-add `ready` and the next run
+  re-implements on the fresh `main` and force-updates the same PR branch. The
+  tail of the slice was merge → re-run → merge, three re-runs in total.
+- **Merged `main` was verified as a whole**: `npm run lint`, 98 tests and the
+  static build run green on the tree that combines all three slices, and the
+  Pages deploy follows each merge — the live board is up.
+
+Known rough edges (honest list):
+
+- #22's announcement repeats if two different tasks with the same title move to
+  the same column in a row (a counter would fix it); `advanceTask`/`retreatTask`
+  are no longer called by the app — `statusInDirection` owns the step now —
+  but remain tested lib helpers.
+- #23's in-page confirmation (Replace/Cancel) does not take focus when it
+  appears, so a keyboard user needs a long Tab journey to answer it.
+- Three reviewers independently wanted one shared count-label helper; the
+  "1 task / N tasks" rule now exists in three places.
 
 ## Next slices (for later)
 

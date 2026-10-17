@@ -20,6 +20,13 @@ tasks), and both re-runs passed re-review. Every PR carried before/after
 screenshots and a recording captured in the worker image's browser, and the
 live site redeployed automatically with each merge.
 
+Slice 3 ("A board you can trust") is **delivered**: taskboard issues #20–#23
+became PRs #24–#27 (undo a deleted task, undo Clear done, keyboard moves
+between columns, import an exported board), all merged and closed. Three PRs
+each went back exactly once with review findings; the parallel PRs shared
+`page.tsx`, so the merge tail was serialized with three stale-branch re-runs.
+Merged `main` runs lint, 98 tests and the static build green.
+
 ## Rotate or note
 
 - **`OPENCODE_API_KEY`**: the factory now runs on the service-account key you
@@ -64,6 +71,6 @@ live site redeployed automatically with each merge.
 |---|---|
 | `docs/guide.md` | The developer handbook: architecture + diagrams, labels, secrets model, models, images, costs, everyday commands, changing the factory, troubleshooting |
 | `docs/worker-environment.md` | Inside the Box: the snapshot/image, and how to extend the harness (model, skills, `AGENTS.md` rules, MCP servers, subagents, permissions, packages) |
-| `docs/demo-slice.md` | The plan behind the five slice issues |
+| `docs/demo-slice.md` | The slice log: delivered rounds, what each proved, and what is next |
 | `docs/0*.md` | Build log, stage by stage, with real command outputs |
 | `README.md` | Front page with the two diagrams and everyday commands |
