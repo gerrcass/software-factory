@@ -37,8 +37,9 @@ sequenceDiagram
 
 ## Using it
 
-1. Open an issue in `gerrcass/taskboard` (or any repo listed in
-   [`factory.config.json`](factory.config.json)).
+1. Open an issue in `gerrcass/taskboard` — the board itself is live at
+   <https://gerrcass.github.io/taskboard/> — or any repo listed in
+   [`factory.config.json`](factory.config.json).
 2. Add the `ready` label. Only `allowedActors` can start runs.
 3. Watch the issue's labels: `factory:running` → `factory:review` (a PR is
    waiting) or `factory:needs-attention` (the factory explains why in a

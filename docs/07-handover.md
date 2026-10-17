@@ -3,32 +3,28 @@
 The factory is live. This is the short list an owner needs: what to review,
 what to rotate, what to watch, and where the rest is written down.
 
-## Waiting for your review
+## Where things stand
 
-Four slice PRs are open on `gerrcass/taskboard`, all checks green:
+Slice 1 ("Board control") is complete: five issues closed, five pull requests
+merged, the issue tracker empty. The set proved the whole loop — the parallel
+burst across four workers, a stale-branch re-run, one review-driven iteration
+(#10's download fix), and the visual-proof pipeline on the final run. The
+live app is at <https://gerrcass.github.io/taskboard/>, redeployed by the
+Pages workflow on every merge to `main`.
 
-| PR | Issue | What it does |
-|---|---|---|
-| [#8](https://github.com/gerrcass/taskboard/pull/8) | #3 | Clear done button (only shown when something is done) |
-| [#9](https://github.com/gerrcass/taskboard/pull/9) | #4 | Rename a task inline (Enter/blur saves, Esc cancels) |
-| [#10](https://github.com/gerrcass/taskboard/pull/10) | #6 | Export the board as JSON, browser-only download |
-| [#11](https://github.com/gerrcass/taskboard/pull/11) | #5 | Priorities with badges; existing stored tasks default to normal |
-
-They overlap in `src/app/page.tsx` and `src/lib/tasks.ts`, so the first merge
-makes the rest stale. Merge one, then either resolve the next on GitHub or
-re-add `ready` to its issue — the factory force-pushes a fresh branch and
-updates the same PR.
-
-Issue #2 is closed (PR #7 merged); the slice "Board control" is complete once
-these four land.
+Slice 2 ("Dates and focus") is **prepared, not started**: its four issues are
+written in `scripts/demo-issues.json` and the staged rollout is described in
+`docs/demo-slice.md`. Nothing is pending anywhere; launching it is one
+command away.
 
 ## Rotate or note
 
-- **`OPENCODE_API_KEY`**: during the build session an earlier Go key
-  value appeared in the session's terminal output. A fresh key was put in
-  `.env` for the factory, so what runs today is clean — but if that older key
-  is still active in the OpenCode console, revoke it. To rotate again later:
-  new key in the console → edit `.env` → `node --env-file=.env scripts/set-secrets.mjs --yes`.
+- **`OPENCODE_API_KEY`**: the factory now runs on the service-account key you
+  created (Go models only; verified by smoke test and live runs). It passed
+  through chat once, so rotate it at the end of the project: new key in the
+  OpenCode console → edit `.env` → `node --env-file=.env scripts/set-secrets.mjs --yes`.
+  (The "key expired" errors you saw were local saved accounts shadowing new
+  keys — see the troubleshooting row in `docs/guide.md`.)
 - **`FACTORY_GITHUB_TOKEN`** (fine-grained PAT): note its expiry date and
   rotate before it lapses, or every run will fail at clone/dispatch time with
   an authentication error. Same rotation path: new token → `.env` →
