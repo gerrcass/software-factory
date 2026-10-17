@@ -1,0 +1,27 @@
+[
+  {
+    "repo": "gerrcass/taskboard",
+    "title": "Header shows a progress summary",
+    "body": "Right now the header is just a title and a sentence. Make it also show a small progress summary of the board, for example `4 tasks · 1 done`, that updates as tasks are added, moved and deleted.\n\n- Counts must be derived from the same tasks the columns show, not from separate state.\n- With no tasks, show a friendly empty message instead of `0 tasks`.\n- Keep `npm run lint`, `npm run test` and `npm run build` passing, and cover the new counting logic with a unit test in `src/lib/`."
+  },
+  {
+    "repo": "gerrcass/taskboard",
+    "title": "Add a Clear done button",
+    "body": "Deleting finished tasks one by one gets tedious. Add a small **Clear done** button (near the form or above the columns) that removes every task in the Done column at once.\n\n- The button is only visible (or only enabled) when at least one task is done.\n- It must not touch tasks in the other columns.\n- Put the logic in `src/lib/tasks.ts` as a pure function with unit tests, and keep the three commands in `AGENTS.md` passing."
+  },
+  {
+    "repo": "gerrcass/taskboard",
+    "title": "Rename a task inline",
+    "body": "Typos happen, and today the only fix is delete and re-create. Make the task title editable in place: a click (or double-click) on the title turns it into a text input; Enter or blur saves, Escape cancels.\n\n- A blank title must not be saved; the old title stays.\n- The change persists in the board's storage exactly like other edits.\n- Add a pure `renameTask` (or similar) function in `src/lib/tasks.ts` with unit tests, and keep the three commands in `AGENTS.md` passing."
+  },
+  {
+    "repo": "gerrcass/taskboard",
+    "title": "Task priorities with badges",
+    "body": "Give tasks a priority: **low**, **normal** or **high** (default normal). Show a small colored badge on each card, and let the new-task form choose the priority.\n\n- Existing tasks in someone's browser storage have no priority; they must keep working and simply show as normal.\n- Moving and deleting tasks is unchanged.\n- Cover the priority default and any new helper with unit tests, and keep the three commands in `AGENTS.md` passing."
+  },
+  {
+    "repo": "gerrcass/taskboard",
+    "title": "Export the board as JSON",
+    "body": "Add an **Export** button that downloads the current board as a `taskboard.json` file, so the data can be backed up or moved elsewhere.\n\n- The file is valid JSON containing every task with all its fields.\n- No server involved: it works fully in the browser.\n- Keep the serialization in a small helper in `src/lib/` with a unit test, and keep the three commands in `AGENTS.md` passing."
+  }
+]

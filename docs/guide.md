@@ -238,6 +238,15 @@ property of the Box, decided when the Box is created (`factory.browser`, here
 `true`), and an image passes on the browser access of the Box it was built in.
 Build images only in browser-enabled Boxes.
 
+**Two OpenCode CLIs live in a Box, and only one is ours.** The stock Box ships
+its platform's own OpenCode **v1** at `/opt/runner/bin/opencode` (a symlink to
+`runner-cli`), which plain `sh` finds first. The pinned **v2** from this image
+wins in **login shells** — and login shells are where the factory runs
+everything (`runScript` uses `bash -lc`): the agent, the repo's setup, the
+checks. `worker/setup.sh` asserts the login-shell version at build time, and
+`scripts/smoke-test.mjs` checks the CLI in that same context. Leave
+`/opt/runner/bin` alone: it is platform machinery this factory never needs.
+
 **To rebuild after editing `setup.sh`:**
 
 ```bash
@@ -381,7 +390,7 @@ Design choices worth knowing:
 | A worker stays busy after a cancelled run | `node --env-file=.env scripts/release-worker.mjs <worker id>`. |
 | "Box limit reached" when provisioning | The plan's limit counts paused Boxes; `check-setup` does the arithmetic. Delete old smoke Boxes (`--keep` holds one). |
 | Preview deployment on the PR is blocked | Vercel-like hosts block commits whose **author** is not on the team. The author email in `factory.gitAuthor` must be the replying person's noreply address. |
-| `command -v opencode` fails in a Box | The CLI was not installed in the image, or is not on the default PATH — see section 8. |
+| `command -v opencode` fails in a Box | The CLI was not installed in the image, or is not on the default PATH — see section 8. A `1.18.29` in some contexts is the platform's own CLI at `/opt/runner/bin`; the factory and the smoke test use login shells, where the pinned v2 wins. |
 | Checks pass locally but fail in the Box | The Box is ARM64 Debian 12; version-pin native tooling, and remember setup/checks run as one bash login script, not a full dev environment. |
 
 ---
