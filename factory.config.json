@@ -53,7 +53,7 @@
         }
       ],
       "command": "opencode run --standalone --auto \"$(cat {prompt})\" > {summary}",
-      "snapshotId": "22763104-9a98-4153-8236-adfaebe20800"
+      "snapshotId": "d2ba0e50-ab60-4544-8ceb-b00ad10290a8"
     }
   },
   "repos": [
