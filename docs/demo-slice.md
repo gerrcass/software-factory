@@ -18,7 +18,7 @@ download fix came from a reviewer finding posted as an issue comment). The
 final #10 also carries the upgraded harness's visual proof: before/after
 tables and an embedded recording.
 
-## Slice 2 — Dates and focus: in progress
+## Slice 2 — Dates and focus: delivered
 
 Created as taskboard issues **#12–#15** (the slice-1 pull requests had
 already used the numbers 7–11). Staged rollout, each PR reviewed by subagents
