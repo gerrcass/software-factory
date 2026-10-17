@@ -49,15 +49,22 @@ Created as taskboard issues **#20–#23**:
 
 | Issue | Title | Status |
 |---|---|---|
-| [#20](https://github.com/gerrcass/taskboard/issues/20) | Undo a deleted task | wave 1 |
-| [#21](https://github.com/gerrcass/taskboard/issues/21) | Undo Clear done | staged after #20 merges |
-| [#22](https://github.com/gerrcass/taskboard/issues/22) | Move tasks between columns with the keyboard | wave 1 |
-| [#23](https://github.com/gerrcass/taskboard/issues/23) | Import the board from an exported JSON file | wave 1 |
+| [#20](https://github.com/gerrcass/taskboard/issues/20) | Undo a deleted task | **merged** (PR #24) after one review iteration — the first attempt lost focus when the delete button unmounted; the re-run moved focus to the Undo button and made the live region reliable |
+| [#21](https://github.com/gerrcass/taskboard/issues/21) | Undo Clear done | **merged** (PR #27) — clean review; the spec reviewer re-ran lint/test/build itself |
+| [#22](https://github.com/gerrcass/taskboard/issues/22) | Move tasks between columns with the keyboard | iterating — review found a stale focus request that could steal focus later and silent duplicate announcements; the fixes are in the branch, which then went stale against #20's merge and is queued for a fresh re-run |
+| [#23](https://github.com/gerrcass/taskboard/issues/23) | Import the board from an exported JSON file | iterating — review asked for duplicate-id validation and a self-clearing notice; the fix is in, then a stale-branch re-run against #20/#21's merges |
 
 The slice: recover from mistakes (undo single deletes and Clear done), operate
 the board without a mouse (keyboard moves), and restore a backup (import an
-export). Wave 1 runs #20, #22 and #23 in parallel; #21 is held back so it can
+export). Wave 1 ran #20, #22 and #23 in parallel; #21 was held back so it could
 reuse #20's undo pattern instead of racing it.
+
+A property worth recording: all three parallel PRs edit the same regions of
+`page.tsx`, so every merge makes its siblings stale (`CONFLICTING` on GitHub).
+The factory's answer is the re-run path — re-add `ready` and the next run
+rebuilds the branch on the fresh `main` — so the tail of this slice is one
+merge, one re-run, repeat. That is slower than a rebase button and exactly the
+path the earlier slices documented.
 
 ## Next slices (for later)
 
