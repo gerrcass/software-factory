@@ -392,6 +392,7 @@ Design choices worth knowing:
 | Preview deployment on the PR is blocked | Vercel-like hosts block commits whose **author** is not on the team. The author email in `factory.gitAuthor` must be the replying person's noreply address. |
 | `command -v opencode` fails in a Box | The CLI was not installed in the image, or is not on the default PATH — see section 8. A `1.18.29` in some contexts is the platform's own CLI at `/opt/runner/bin`; the factory and the smoke test use login shells, where the pinned v2 wins. |
 | Checks pass locally but fail in the Box | The Box is ARM64 Debian 12; version-pin native tooling, and remember setup/checks run as one bash login script, not a full dev environment. |
+| `This API key has expired. … Signing in again will not renew this key.` | A **saved** account in the local OpenCode database is dead. Saved accounts take precedence over environment connections, so a new key in `.env` changes nothing until the old account is replaced. Remove it (`opencode auth logout opencode-go`, `opencode auth logout opencode`) and reconnect, or run the shared service on the environment key (`opencode service set env OPENCODE_API_KEY <key>`). Service-account keys are created with an **optional expiry date** — leaving it blank avoids the trap. On the factory side the key arrives as an environment variable for each job, so an expired local login never affects worker runs. |
 
 ---
 
@@ -399,15 +400,4 @@ Design choices worth knowing:
 
 - The agent runs with its permission prompts switched off and holds its
   sign-in for exactly the length of a job; treat issue text as prompt input,
-  not as trusted code. Read an issue before labelling it, above all in a
-  public repo.
-- The GitHub token is never exposed to the agent; git commands run with the
-  credential helper switched off and the remote URL reset before the agent
-  starts. `box-exec.mjs` can verify after a run:
-  `ls -d ~/.git-credentials /workspace/home/.factory` should find neither.
-- Fine-grained tokens expire; note the date on the one you created and rotate
-  before it lapses. The same applies to the `OPENCODE_API_KEY` — rotate it in
-  the console and update `.env`
-  (and `scripts/set-secrets.mjs --yes`).
-- Anyone who can see the factory repo's Actions logs can see run output;
-  keep this repo's membership tight, or make it private.
+  not as trusted c
