@@ -66,7 +66,10 @@ export function loadConfig(file = CONFIG_FILE) {
     if (agent.priority !== undefined && typeof agent.priority !== "number") errors.push(`agent "${name}": priority must be a number. Higher takes unlabelled issues first`)
     if (!agent.command?.includes("{prompt}")) errors.push(`agent "${name}" needs a command that contains {prompt}`)
     else if (!agent.command.includes("{summary}") && !agent.promptExtra?.includes("{summary}")) console.warn(`Warning: the command of agent "${name}" has no {summary}, so its pull requests will have no description.`)
-    if (agent.command?.includes("{summary}") && agent.promptExtra?.includes("{summary}")) {
+    // Narrating CLIs (OpenCode prints every assistant message) write stdout to
+    // {summary}.raw and let promptExtra have the agent write {summary} itself.
+    // That is one writer per file; only warn when both target {summary} itself.
+    if (agent.command?.includes("{summary}") && !agent.command.includes("{summary}.raw") && agent.promptExtra?.includes("{summary}")) {
       console.warn(`Warning: agent "${name}" fills {summary} both from its command and through promptExtra. Use one, or the two writes overwrite each other.`)
     }
     for (const file of agent.jobFiles ?? []) {

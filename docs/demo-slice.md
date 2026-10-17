@@ -1,8 +1,8 @@
-# Demo slice: "Board control" (done) and "Dates and focus" (next)
+# Demo slice: "Board control" (delivered) and "Dates and focus" (prepared)
 
-## Slice 1 — Board control (delivered)
+## Slice 1 — Board control: delivered and closed
 
-Five issues, all closed; the factory built the whole slice:
+All five issues closed, all five PRs merged, issue tracker empty:
 
 | Issue | PR | Built by | Outcome |
 |---|---|---|---|
@@ -10,35 +10,27 @@ Five issues, all closed; the factory built the whole slice:
 | #3 Clear done button | [#8](https://github.com/gerrcass/taskboard/pull/8) | Quill | merged, issue closed |
 | #4 Rename inline | [#9](https://github.com/gerrcass/taskboard/pull/9) | Volt | merged, issue closed |
 | #5 Priorities with badges | [#11](https://github.com/gerrcass/taskboard/pull/11) | Pixel | merged after a fresh re-run (stale branch), issue closed |
-| #6 Export as JSON | [#10](https://github.com/gerrcass/taskboard/pull/10) | Nova | went back to the factory once with the review's bug report, issue closed |
+| #6 Export as JSON | [#10](https://github.com/gerrcass/taskboard/pull/10) | Nova | went back to the factory once with the review's bug report, then merged; issue closed |
 
 What it proved: the full label loop (twice), the parallel burst across four
 workers, the stale-PR re-run path, and the review-and-iterate path (#10's
-download fix came from a reviewer finding posted as an issue comment).
+download fix came from a reviewer finding posted as an issue comment). The
+final #10 also carries the upgraded harness's visual proof: before/after
+tables and an embedded recording.
 
-## Slice 2 — Dates and focus (in progress)
+## Slice 2 — Dates and focus: prepared, not started
 
-The board can hold tasks, but not time. This slice gives every task a
-deadline, orders the columns by what matters, and lets a person filter to
-what needs attention — the first slice where the upgraded harness (browser,
-visual proof, frontend-design skill) does the real work.
+The four issues are written and waiting in `scripts/demo-issues.json`; no
+issue has been created or labelled yet, so nothing is pending anywhere. To
+launch it: create the issues, run **#7 Due dates** alone first (everything
+else depends on the field it adds), then label the remaining three as a
+parallel burst — each reviewed by subagents before merge, per the workflow
+in `docs/guide.md`.
 
-Staged deliberately, because the overdue features all build on due dates:
-
-1. **#7 Due dates for tasks** — runs alone first; everything else depends on
-   the field it adds. UI change → before/after proof expected on its PR.
-2. Then a parallel burst, each depending only on #7:
-   - **#8 Order the columns: priority, then due date** — a deterministic
-     comparator; the priority sort finally exercises slice 1's badges.
-   - **#9 Filter bar: status, priority and overdue** — display-only filtering
-     with counts and a clear-all.
-   - **#10 Header callout for overdue work** — the summary learns to shout
-     `2 overdue` when it must.
-
-Every slice-2 PR goes through the reviewer subagents (Standards + Spec,
-per the code-review skill); minor findings may merge, anything behavioural
-goes back to the factory as an issue comment before merging. All four PRs
-will carry visual proof attached through the before-and-after pipeline.
+The slice: due dates on tasks, columns ordered by priority then due date, a
+filter bar (status / priority / overdue), and an overdue callout in the
+header — the first slice where the browser-capable workers and the
+visual-proof pipeline do the real work.
 
 ## Next slices (for later)
 

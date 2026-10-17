@@ -400,4 +400,15 @@ Design choices worth knowing:
 
 - The agent runs with its permission prompts switched off and holds its
   sign-in for exactly the length of a job; treat issue text as prompt input,
-  not as trusted c
+  not as trusted code. Read an issue before labelling it, above all in a
+  public repo.
+- The GitHub token is never exposed to the agent; git commands run with the
+  credential helper switched off and the remote URL reset before the agent
+  starts. `box-exec.mjs` can verify after a run:
+  `ls -d ~/.git-credentials /workspace/home/.factory` should find neither.
+- Fine-grained tokens expire; note the date on the one you created and rotate
+  before it lapses. The same applies to the `OPENCODE_API_KEY` — rotate it in
+  the console and update `.env`
+  (and `scripts/set-secrets.mjs --yes`).
+- Anyone who can see the factory repo's Actions logs can see run output;
+  keep this repo's membership tight, or make it private.
