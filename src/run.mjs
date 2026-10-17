@@ -341,6 +341,19 @@ async function main() {
 
     const title = issue.title
     await sh(box, `cd ${q(repoDir)} && git commit --quiet -m ${q(`${title}\n\nCloses #${issue.number}`)}`)
+    // main can move while the agent works. Rebasing onto its current tip keeps
+    // the push a plain one-commit addition: a workflow file that changed in
+    // between would otherwise look like this branch updates it, which a plain
+    // token may not do.
+    const rebase = await sh(
+      box,
+      `cd ${q(repoDir)} && git ${NO_STORE} fetch --quiet --depth 50 ${q(authedUrl)} ${q(repo.baseBranch)} && git rebase --quiet FETCH_HEAD`,
+      { allowFailure: true },
+    )
+    if (rebase.code !== 0) {
+      await needsAttention(`\`${repo.baseBranch}\` moved while the agent worked, and the change no longer applies cleanly on top of it. Re-add the \`${labels.ready}\` label to run again.\n\n${details("Rebase output", rebase.output)}`)
+      return
+    }
     await sh(box, `cd ${q(repoDir)} && git ${NO_STORE} push --quiet --force ${q(authedUrl)} ${q(`${branch}:${branch}`)}`)
 
     const checkLine = repo.checks.length ? `Checks passed: ${repo.checks.map((c) => `\`${c}\``).join(", ")}.` : "This repo has no automated checks."

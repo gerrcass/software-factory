@@ -153,12 +153,19 @@ export const browserMissingHelp = (config, agentName) =>
 // attach to it. A job goes on without a browser when this fails.
 export async function startBrowser(box, config) {
   if (!wantsBrowser(config)) return false
-  try {
-    await box.browser.tab.create("about:blank")
-    return true
-  } catch (error) {
-    console.warn(`Could not start the Box's browser (${error.message}). The job goes on without it.`)
-    return false
+  // A Box that just resumed sometimes refuses the first tab; retries with a
+  // short pause have been enough in practice.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await box.browser.tab.create("about:blank")
+      return true
+    } catch (error) {
+      if (attempt >= 3) {
+        console.warn(`Could not start the Box's browser (${error.message}). The job goes on without it.`)
+        return false
+      }
+      await sleep(5_000)
+    }
   }
 }
 
