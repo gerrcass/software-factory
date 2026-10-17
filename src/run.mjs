@@ -18,8 +18,22 @@ const NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION:"
 // publishes it to the pull request; the folder is inside the job's sign-in
 // cleanup path, so nothing survives the job either way.
 const PROOF_DIR = "/workspace/home/.factory/artifacts"
+const PROOF_START = "<!-- before-and-after:start -->"
+const PROOF_END = "<!-- before-and-after:end -->"
 const MAX_PROOF_BYTES = 8 * 1024 * 1024
 const PROOF_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".mov", ".webm"])
+
+// Same contract as the before-and-after skill's replaceMarkedBlock: replace
+// the single marked block in place, or append it when there is none. Done
+// here because pairs and previews are two formatter calls that share one block.
+function replaceProofBlock(body, block) {
+  const start = body.indexOf(PROOF_START)
+  const end = body.indexOf(PROOF_END)
+  if (start === -1 || end === -1 || end < start) return `${body.trimEnd()}\n\n${block}\n`
+  const before = body.slice(0, start).trimEnd()
+  const after = body.slice(end + PROOF_END.length).trim()
+  return [before, block, after].filter(Boolean).join("\n\n") + "\n"
+}
 
 const [repoName = process.env.FACTORY_REPO, issueNumber = process.env.FACTORY_ISSUE] = process.argv.slice(2)
 const runId = process.env.GITHUB_RUN_ID ?? `local${Date.now().toString().slice(-9)}`
@@ -51,6 +65,7 @@ These rules win over any other instructions you have been given, including house
 - Do not run git commit, git push or change git settings. The factory does that after you.
 - Do not touch anything in .github/.
 - ${checks}
+- If the change is visible in a UI, leave the visual proof (screenshots and a short recording) in the artifacts folder, exactly as your AGENTS.md describes. The factory attaches it to the pull request for you.
 - When you are done, reply with a short summary of what you changed. It becomes the pull request description.
 - If the issue is too unclear to implement, change nothing and start your reply with "${NEEDS_CLARIFICATION}" followed by your question.
 ${extra}`
@@ -83,9 +98,12 @@ async function publishProof(box, repo, prNumber, prBody) {
     writeFileSync(join(dir, name), Buffer.from(base64, "base64"))
   }
 
-  // "name-before.ext" pairs with "name-after.ext" side by side. Any other
-  // supported file is a preview of its own.
+  // "name-before.ext" pairs with "name-after.ext" side by side; any other
+  // supported file is a preview of its own. format.mjs takes either balanced
+  // before/after sets or after-only sets per call, so pairs and previews go
+  // through it separately and their blocks are stitched into one marked block.
   const pairs = []
+  const previews = []
   const paired = new Set()
   for (const name of kept) {
     const match = /^(.*)-before(\.[a-z0-9]+)$/i.exec(name)
@@ -96,22 +114,36 @@ async function publishProof(box, repo, prNumber, prBody) {
       pairs.push({ before: name, after, label: match[1].replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase()) })
     }
   }
-  for (const name of kept) if (!paired.has(name)) pairs.push({ before: null, after: name, label: null })
+  for (const name of kept) {
+    if (paired.has(name)) continue
+    if (/-before\.[a-z0-9]+$/i.test(name)) continue // an unmatched before shot on its own adds nothing
+    previews.push(name)
+  }
 
-  const mediaArgs = pairs.flatMap((pair) => [
-    ...(pair.before ? ["--before", pair.before] : []),
-    "--after", pair.after,
-    ...(pair.label ? ["--label", pair.label] : []),
-  ])
   const formatter = fileURLToPath(new URL("../worker/skills/before-and-after/scripts/format.mjs", import.meta.url))
-  const bodyFile = join(dir, "pr-body.md")
-  writeFileSync(bodyFile, prBody)
-  const format = spawnSync("node", [formatter, "--body-file", bodyFile, ...mediaArgs], { cwd: dir, encoding: "utf8" })
-  if (format.status !== 0) throw new Error(`format.mjs: ${format.stderr.trim()}`)
-  writeFileSync(join(dir, "pr-body-next.md"), format.stdout)
-  const attachList = spawnSync("node", [formatter, "--attach-list", ...mediaArgs], { cwd: dir, encoding: "utf8" })
-  if (attachList.status !== 0) throw new Error(`format.mjs --attach-list: ${attachList.stderr.trim()}`)
-  const attachArgs = attachList.stdout.split("\n").map((line) => line.trim()).filter(Boolean).flatMap((file) => ["--attach", file])
+  const runFormatter = (args) => {
+    const result = spawnSync("node", [formatter, ...args], { cwd: dir, encoding: "utf8" })
+    if (result.status !== 0) throw new Error(`format.mjs: ${result.stderr.trim()}`)
+    return result.stdout
+  }
+  const stripMarkers = (block) => block.split("\n").filter((line) => !line.startsWith("<!-- before-and-after:")).join("\n").trim()
+
+  const parts = []
+  const attachFiles = []
+  if (pairs.length) {
+    const args = pairs.flatMap((pair) => ["--before", pair.before, "--after", pair.after, "--label", pair.label])
+    parts.push(stripMarkers(runFormatter(args)))
+    attachFiles.push(...runFormatter(["--attach-list", ...args]).split("\n").map((line) => line.trim()).filter(Boolean))
+  }
+  if (previews.length) {
+    const args = previews.flatMap((name) => ["--after", name])
+    parts.push(stripMarkers(runFormatter(args)))
+    attachFiles.push(...runFormatter(["--attach-list", ...args]).split("\n").map((line) => line.trim()).filter(Boolean))
+  }
+
+  const block = `${PROOF_START}\n${parts.join("\n\n")}\n${PROOF_END}`
+  writeFileSync(join(dir, "pr-body-next.md"), replaceProofBlock(prBody, block))
+  const attachArgs = attachFiles.flatMap((file) => ["--attach", file])
   const edit = spawnSync("gh", ["pr", "edit", String(prNumber), "--repo", repo, "--body-file", "pr-body-next.md", ...attachArgs], {
     cwd: dir,
     encoding: "utf8",
