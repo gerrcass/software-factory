@@ -31,6 +31,13 @@ before merge, per the workflow in `docs/guide.md`:
 | [#14](https://github.com/gerrcass/taskboard/issues/14) | Filter bar: status, priority and overdue | queued: joins the burst once #12 merges |
 | [#15](https://github.com/gerrcass/taskboard/issues/15) | Header callout for overdue work | queued: joins the burst once #12 merges |
 
+The first attempt for #12 (run 39062508585) failed for a factory reason, not a
+feature one: a workflow-file change landed on `main` mid-run, and GitHub
+refused the push under the token's scope rules. Fixed in `src/run.mjs` (the
+branch is now rebased onto the fresh `main` before the push) and retried. The
+same run also showed the Box browser failing on a cold resume — `startBrowser`
+now retries, and `scripts/browser-test.mjs` checks a Box by hand.
+
 The slice: due dates on tasks, columns ordered by priority then due date, a
 filter bar (status / priority / overdue), and an overdue callout in the
 header — the first slice where the browser-capable workers and the
