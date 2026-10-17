@@ -1,27 +1,22 @@
 [
   {
     "repo": "gerrcass/taskboard",
-    "title": "Header shows a progress summary",
-    "body": "Right now the header is just a title and a sentence. Make it also show a small progress summary of the board, for example `4 tasks · 1 done`, that updates as tasks are added, moved and deleted.\n\n- Counts must be derived from the same tasks the columns show, not from separate state.\n- With no tasks, show a friendly empty message instead of `0 tasks`.\n- Keep `npm run lint`, `npm run test` and `npm run build` passing, and cover the new counting logic with a unit test in `src/lib/`."
+    "title": "Due dates for tasks",
+    "body": "Tasks need deadlines. Add an optional due date:\n\n- The new-task form gets a date field; a task with no date stays valid and unchanged.\n- Cards with a due date show it in plain language (for example `Due Oct 24`).\n- A task whose due date has passed and that is not done is marked as overdue — clear at a glance, not alarming.\n- Tasks already stored in someone's browser have no due date; they must keep working.\n\nPut the date logic in `src/lib/tasks.ts` as small pure helpers (set, clear, overdue check, label) with unit tests, and keep the three commands in `AGENTS.md` passing. This is a visible UI change, so leave the visual proof in the artifacts folder."
   },
   {
     "repo": "gerrcass/taskboard",
-    "title": "Add a Clear done button",
-    "body": "Deleting finished tasks one by one gets tedious. Add a small **Clear done** button (near the form or above the columns) that removes every task in the Done column at once.\n\n- The button is only visible (or only enabled) when at least one task is done.\n- It must not touch tasks in the other columns.\n- Put the logic in `src/lib/tasks.ts` as a pure function with unit tests, and keep the three commands in `AGENTS.md` passing."
+    "title": "Order the columns: priority, then due date",
+    "body": "Within each column, order tasks by what matters: priority first (high, then normal, then low), then the nearest due date, then oldest first. Tasks without a due date sort after dated ones within the same priority.\n\nThe order must be deterministic and derivable from the task fields alone. Put the ordering in `src/lib/tasks.ts` as a pure comparator with unit tests, and keep the three commands in `AGENTS.md` passing. This changes how the board reads, so leave before/after proof in the artifacts folder."
   },
   {
     "repo": "gerrcass/taskboard",
-    "title": "Rename a task inline",
-    "body": "Typos happen, and today the only fix is delete and re-create. Make the task title editable in place: a click (or double-click) on the title turns it into a text input; Enter or blur saves, Escape cancels.\n\n- A blank title must not be saved; the old title stays.\n- The change persists in the board's storage exactly like other edits.\n- Add a pure `renameTask` (or similar) function in `src/lib/tasks.ts` with unit tests, and keep the three commands in `AGENTS.md` passing."
+    "title": "Filter bar: status, priority and overdue",
+    "body": "The board now holds enough tasks that finding things matters. Add a filter bar above the columns:\n\n- A status filter: All / To do / Doing / Done.\n- A priority filter: All / High / Normal / Low.\n- An `Overdue only` toggle for tasks past their due date and not done.\n- Column counts reflect what is shown; an empty result says so; one click clears every filter.\n\nFilters are display-only: they must never change or hide stored tasks. Put the filtering in `src/lib/tasks.ts` as a pure function with unit tests, and keep the three commands in `AGENTS.md` passing. Visible UI change: leave before/after proof in the artifacts folder."
   },
   {
     "repo": "gerrcass/taskboard",
-    "title": "Task priorities with badges",
-    "body": "Give tasks a priority: **low**, **normal** or **high** (default normal). Show a small colored badge on each card, and let the new-task form choose the priority.\n\n- Existing tasks in someone's browser storage have no priority; they must keep working and simply show as normal.\n- Moving and deleting tasks is unchanged.\n- Cover the priority default and any new helper with unit tests, and keep the three commands in `AGENTS.md` passing."
-  },
-  {
-    "repo": "gerrcass/taskboard",
-    "title": "Export the board as JSON",
-    "body": "Add an **Export** button that downloads the current board as a `taskboard.json` file, so the data can be backed up or moved elsewhere.\n\n- The file is valid JSON containing every task with all its fields.\n- No server involved: it works fully in the browser.\n- Keep the serialization in a small helper in `src/lib/` with a unit test, and keep the three commands in `AGENTS.md` passing."
+    "title": "Header callout for overdue work",
+    "body": "When something is overdue, the header should say so without being asked: extend the progress summary with a distinct callout like `2 overdue` whenever the count is above zero, styled to catch the eye with the existing palette. At zero, nothing appears.\n\nThe count comes from the same task list the columns render. Keep the logic in `src/lib/tasks.ts` with a unit test (including the zero case), and keep the three commands in `AGENTS.md` passing. Visible UI change: leave before/after proof in the artifacts folder."
   }
 ]

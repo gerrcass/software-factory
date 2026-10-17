@@ -107,6 +107,15 @@ export async function runAgent(box, config, agentName, { workDir, jobDir, prompt
 
   // Empty when the agent's command did not get its reply into {summary}. The
   // smoke test warns about that, because the pull request text comes from here.
-  const summary = (await sh(box, `cat ${summaryFile} 2>/dev/null`, { allowFailure: true })).output.trim()
+  // CLIs that narrate their progress on stdout (OpenCode prints every assistant
+  // message) are told by promptExtra to write {summary} themselves; the stdout
+  // redirect goes to {summary}.raw, and is only a fallback, trimmed to the last
+  // "## Summary" section when the agent wrote one.
+  let summary = (await sh(box, `cat ${summaryFile} 2>/dev/null`, { allowFailure: true })).output.trim()
+  if (!summary) {
+    const raw = (await sh(box, `cat ${summaryFile}.raw 2>/dev/null`, { allowFailure: true })).output.trim()
+    const marker = raw.lastIndexOf("\n## ")
+    summary = marker >= 0 ? raw.slice(marker + 1).trim() : raw
+  }
   return { ...result, summary }
 }

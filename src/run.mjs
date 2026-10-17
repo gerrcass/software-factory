@@ -21,7 +21,9 @@ const PROOF_DIR = "/workspace/home/.factory/artifacts"
 const PROOF_START = "<!-- before-and-after:start -->"
 const PROOF_END = "<!-- before-and-after:end -->"
 const MAX_PROOF_BYTES = 8 * 1024 * 1024
-const PROOF_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".mov", ".webm"])
+const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"])
+const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".webm"])
+const PROOF_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS])
 
 // Same contract as the before-and-after skill's replaceMarkedBlock: replace
 // the single marked block in place, or append it when there is none. Done
@@ -98,28 +100,6 @@ async function publishProof(box, repo, prNumber, prBody) {
     writeFileSync(join(dir, name), Buffer.from(base64, "base64"))
   }
 
-  // "name-before.ext" pairs with "name-after.ext" side by side; any other
-  // supported file is a preview of its own. format.mjs takes either balanced
-  // before/after sets or after-only sets per call, so pairs and previews go
-  // through it separately and their blocks are stitched into one marked block.
-  const pairs = []
-  const previews = []
-  const paired = new Set()
-  for (const name of kept) {
-    const match = /^(.*)-before(\.[a-z0-9]+)$/i.exec(name)
-    const after = match ? `${match[1]}-after${match[2]}` : null
-    if (after && kept.includes(after) && !paired.has(after)) {
-      paired.add(name)
-      paired.add(after)
-      pairs.push({ before: name, after, label: match[1].replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase()) })
-    }
-  }
-  for (const name of kept) {
-    if (paired.has(name)) continue
-    if (/-before\.[a-z0-9]+$/i.test(name)) continue // an unmatched before shot on its own adds nothing
-    previews.push(name)
-  }
-
   const formatter = fileURLToPath(new URL("../worker/skills/before-and-after/scripts/format.mjs", import.meta.url))
   const runFormatter = (args) => {
     const result = spawnSync("node", [formatter, ...args], { cwd: dir, encoding: "utf8" })
@@ -127,29 +107,91 @@ async function publishProof(box, repo, prNumber, prBody) {
     return result.stdout
   }
   const stripMarkers = (block) => block.split("\n").filter((line) => !line.startsWith("<!-- before-and-after:")).join("\n").trim()
+  const ghEnv = { ...process.env, GH_TOKEN: process.env.FACTORY_GITHUB_TOKEN }
 
+  const imageNames = kept.filter((name) => IMAGE_EXTENSIONS.has(name.slice(name.lastIndexOf(".")).toLowerCase()))
+  const videoNames = kept.filter((name) => VIDEO_EXTENSIONS.has(name.slice(name.lastIndexOf(".")).toLowerCase()))
+  const pairUp = (names) => {
+    const pairs = []
+    const previews = []
+    const paired = new Set()
+    for (const name of names) {
+      const match = /^(.*)-before(\.[a-z0-9]+)$/i.exec(name)
+      const after = match ? `${match[1]}-after${match[2]}` : null
+      if (after && names.includes(after) && !paired.has(after)) {
+        paired.add(name)
+        paired.add(after)
+        pairs.push({ before: name, after, label: match[1].replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase()) })
+      }
+    }
+    for (const name of names) {
+      if (paired.has(name) || /-before\.[a-z0-9]+$/i.test(name)) continue // unmatched before shots add nothing
+      previews.push(name)
+    }
+    return { pairs, previews }
+  }
+
+  // Screenshots: local references, rewritten to attachment URLs by gh --attach.
+  const images = pairUp(imageNames)
   const parts = []
   const attachFiles = []
-  if (pairs.length) {
-    const args = pairs.flatMap((pair) => ["--before", pair.before, "--after", pair.after, "--label", pair.label])
+  if (images.pairs.length) {
+    const args = images.pairs.flatMap((pair) => ["--before", pair.before, "--after", pair.after, "--label", pair.label])
     parts.push(stripMarkers(runFormatter(args)))
     attachFiles.push(...runFormatter(["--attach-list", ...args]).split("\n").map((line) => line.trim()).filter(Boolean))
   }
-  if (previews.length) {
-    const args = previews.flatMap((name) => ["--after", name])
+  if (images.previews.length) {
+    const args = images.previews.flatMap((name) => ["--after", name])
     parts.push(stripMarkers(runFormatter(args)))
     attachFiles.push(...runFormatter(["--attach-list", ...args]).split("\n").map((line) => line.trim()).filter(Boolean))
+  }
+
+  // Recordings: gh --attach cannot rewrite a <video src>, and an image
+  // reference to a video renders as a link. So the skill's two-step path is
+  // used: upload through a temporary comment, collect the attachment URLs,
+  // build the <video> table from them, and delete the comment afterwards.
+  let uploadCommentId = null
+  const videos = pairUp(videoNames)
+  if (videos.pairs.length || videos.previews.length) {
+    const marker = `<!-- factory-proof-upload:${Date.now()} -->`
+    const videoPairs = [...videos.pairs, ...videos.previews.map((name) => ({ before: null, after: name, label: null }))]
+    const ordered = []
+    const uploadLines = [marker, ""]
+    for (const [index, pair] of videoPairs.entries()) {
+      if (pair.before) {
+        uploadLines.push(`![before-${index}](./${pair.before})`, "")
+        ordered.push(pair.before)
+      }
+      uploadLines.push(`![after-${index}](./${pair.after})`, "")
+      ordered.push(pair.after)
+    }
+    writeFileSync(join(dir, "proof-upload.md"), uploadLines.join("\n"))
+    const post = spawnSync("gh", ["pr", "comment", String(prNumber), "--repo", repo, "--body-file", "proof-upload.md", ...ordered.flatMap((file) => ["--attach", file])], { cwd: dir, encoding: "utf8", env: ghEnv })
+    if (post.status !== 0) throw new Error(`gh pr comment --attach: ${post.stderr.trim()}`)
+    const list = spawnSync("gh", ["api", `repos/${repo}/issues/${prNumber}/comments?per_page=100`, "--paginate"], { cwd: dir, encoding: "utf8", env: ghEnv })
+    if (list.status !== 0) throw new Error(`reading the upload comment: ${list.stderr.trim()}`)
+    const comment = [...JSON.parse(list.stdout)].reverse().find((c) => c.body?.includes(marker))
+    if (!comment) throw new Error("the proof upload comment could not be found")
+    uploadCommentId = comment.id
+    const urls = [...comment.body.matchAll(/https:\/\/github\.com\/user-attachments\/assets\/[A-Za-z0-9-]+/g)].map((m) => m[0])
+    if (urls.length !== ordered.length) throw new Error(`expected ${ordered.length} uploaded URLs, found ${urls.length}`)
+    const urlFor = new Map(ordered.map((file, index) => [file, urls[index]]))
+    const videoArgs = videoPairs.flatMap((pair) => [
+      ...(pair.before ? ["--before-video-url", urlFor.get(pair.before)] : []),
+      "--after-video-url", urlFor.get(pair.after),
+      "--label", pair.label ?? "Recording",
+    ])
+    parts.push(stripMarkers(runFormatter(videoArgs)))
   }
 
   const block = `${PROOF_START}\n${parts.join("\n\n")}\n${PROOF_END}`
   writeFileSync(join(dir, "pr-body-next.md"), replaceProofBlock(prBody, block))
-  const attachArgs = attachFiles.flatMap((file) => ["--attach", file])
-  const edit = spawnSync("gh", ["pr", "edit", String(prNumber), "--repo", repo, "--body-file", "pr-body-next.md", ...attachArgs], {
-    cwd: dir,
-    encoding: "utf8",
-    env: { ...process.env, GH_TOKEN: process.env.FACTORY_GITHUB_TOKEN },
-  })
+  const edit = spawnSync("gh", ["pr", "edit", String(prNumber), "--repo", repo, "--body-file", "pr-body-next.md", ...attachFiles.flatMap((file) => ["--attach", file])], { cwd: dir, encoding: "utf8", env: ghEnv })
   if (edit.status !== 0) throw new Error(`gh pr edit --attach: ${edit.stderr.trim()}`)
+  if (uploadCommentId) {
+    const cleanup = spawnSync("gh", ["api", "-X", "DELETE", `repos/${repo}/issues/comments/${uploadCommentId}`], { cwd: dir, encoding: "utf8", env: ghEnv })
+    if (cleanup.status !== 0) console.warn("The temporary proof upload comment was not deleted; it holds no secrets.")
+  }
   return kept.length
 }
 

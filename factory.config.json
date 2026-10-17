@@ -52,7 +52,8 @@
           }
         }
       ],
-      "command": "opencode run --standalone --auto \"$(cat {prompt})\" > {summary}",
+      "command": "opencode run --standalone --auto \"$(cat {prompt})\" > {summary}.raw",
+      "promptExtra": "When your work is done and the checks pass, write your final summary to the file {summary}: a short description of what changed and how you verified it, the kind a reviewer reads first. Write nothing else to that file.",
       "snapshotId": "d2ba0e50-ab60-4544-8ceb-b00ad10290a8"
     }
   },

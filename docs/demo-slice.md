@@ -1,57 +1,47 @@
-# Demo slice: "Board control" — the plan behind the first issues
+# Demo slice: "Board control" (done) and "Dates and focus" (next)
 
-A "slice" is a coherent chunk of product work, cut through the stack, that
-leaves the app visibly better. This is the first slice for `taskboard`, chosen
-to be small enough for five agent-sized issues and varied enough to prove
-different parts of the factory.
+## Slice 1 — Board control (delivered)
 
-## Why this slice
+Five issues, all closed; the factory built the whole slice:
 
-The board today does the basics: add, move, delete — one task at a time. The
-next thing a real user needs is **control**: knowing where they stand, fixing
-what they typed, seeing what matters, cleaning up, and taking their data with
-them. Every piece is independently useful, and most of them touch the domain
-logic in `src/lib/tasks.ts`, which means the agents must keep the unit tests
-green — a good test of the checks gate.
-
-## The five issues (created in `demo-issues.json`)
-
-| # | Issue | What it adds | What it proves about the factory |
+| Issue | PR | Built by | Outcome |
 |---|---|---|---|
-| 1 | Header shows a progress summary | `4 tasks · 1 done`, live | The staged first run: dry run, then the full label flow end to end |
-| 2 | Add a Clear done button | Bulk hygiene, pure-function + test | Two workers editing the same module in parallel |
-| 3 | Rename a task inline | Editing with save/cancel semantics | The agent handles interaction details from prose alone |
-| 4 | Task priorities with badges | A new field, with data compatibility for existing stored tasks | The agent must handle a forward/backward compatibility constraint |
-| 5 | Export the board as JSON | Portability, browser-only download | The agent finishes a feature with a UI surface beyond the board itself |
+| #2 Header progress summary | [#7](https://github.com/gerrcass/taskboard/pull/7) | Quill | merged, issue closed |
+| #3 Clear done button | [#8](https://github.com/gerrcass/taskboard/pull/8) | Quill | merged, issue closed |
+| #4 Rename inline | [#9](https://github.com/gerrcass/taskboard/pull/9) | Volt | merged, issue closed |
+| #5 Priorities with badges | [#11](https://github.com/gerrcass/taskboard/pull/11) | Pixel | merged after a fresh re-run (stale branch), issue closed |
+| #6 Export as JSON | [#10](https://github.com/gerrcass/taskboard/pull/10) | Nova | went back to the factory once with the review's bug report, issue closed |
 
-Each issue body states its acceptance points, names the commands that must
-keep passing (`npm run lint`, `npm run test`, `npm run build`), and defers to
-the repo's `AGENTS.md`.
+What it proved: the full label loop (twice), the parallel burst across four
+workers, the stale-PR re-run path, and the review-and-iterate path (#10's
+download fix came from a reviewer finding posted as an issue comment).
 
-## Rollout plan
+## Slice 2 — Dates and focus (in progress)
 
-1. **Staged first run:** issue #1 is labelled alone. Dry run first (the factory
-   prints its plan, touches nothing), then a real run. Its PR is reviewed and
-   merged before anything else starts.
-2. **Parallel burst:** the remaining four issues are labelled at once across
-   four workers. They deliberately touch overlapping files
-   (`src/app/page.tsx`, `src/lib/tasks.ts`), so some pull requests will
-   conflict after the first merge — that is a property of parallel work, not a
-   factory bug, and is part of what this slice demonstrates.
-3. Merge order after the burst: whatever the reviewer prefers; for any PR that
-   went stale against `main`, re-add the `ready` label to the issue (the
-   factory force-pushes a fresh branch and updates the same PR).
+The board can hold tasks, but not time. This slice gives every task a
+deadline, orders the columns by what matters, and lets a person filter to
+what needs attention — the first slice where the upgraded harness (browser,
+visual proof, frontend-design skill) does the real work.
 
-## What we explicitly watch during the burst
+Staged deliberately, because the overdue features all build on due dates:
 
-- One run per issue, no duplicates (`concurrency` group per issue).
-- Every issue ends in `factory:review` or `factory:needs-attention` — never
-  silently.
-- All four workers return to free/paused afterwards (`scripts/status.mjs`).
-- No credentials left in any Box (`ls ~/.git-credentials /workspace/home/.factory`).
+1. **#7 Due dates for tasks** — runs alone first; everything else depends on
+   the field it adds. UI change → before/after proof expected on its PR.
+2. Then a parallel burst, each depending only on #7:
+   - **#8 Order the columns: priority, then due date** — a deterministic
+     comparator; the priority sort finally exercises slice 1's badges.
+   - **#9 Filter bar: status, priority and overdue** — display-only filtering
+     with counts and a clear-all.
+   - **#10 Header callout for overdue work** — the summary learns to shout
+     `2 overdue` when it must.
 
-## Next slices (not started; for future planning)
+Every slice-2 PR goes through the reviewer subagents (Standards + Spec,
+per the code-review skill); minor findings may merge, anything behavioural
+goes back to the factory as an issue comment before merging. All four PRs
+will carry visual proof attached through the before-and-after pipeline.
 
-1. **Dates and focus:** due dates, an overdue view, filters by priority/status.
-2. **Multiple boards:** more than one board per browser, board switcher.
-3. **Polish:** dark-mode toggle, keyboard moves between columns, undo delete.
+## Next slices (for later)
+
+1. **A board you can trust:** undo delete, keyboard moves between columns.
+2. **More than one board:** a board switcher over the same storage.
+3. **Polish:** dark-mode toggle, drag-and-drop, empty-state art.

@@ -17,7 +17,9 @@ Capture with agent-browser, following the `before-and-after` skill for capture c
 - `recording.webm` — a short clip of the change in use (`agent-browser record start` / `record stop`).
 - Something entirely new needs no before shot: a lone `*-after.png` is a preview.
 
-Keep each file under 8MB, and never edit the app's data between the before and after capture. The factory attaches these files to the pull request; publishing is its job.
+Keep each file under 8MB, and never edit the app's data between the before and after capture.
+
+The factory publishes these files to the pull request: the screenshots become a before/after table and the recording becomes a playable video. Your reply is the pull request description, so describe what changed and how you verified it — do not mention the artifacts folder or file names, which mean nothing to a reviewer. The factory attaches these files to the pull request; publishing is its job.
 
 ## Browser
 
