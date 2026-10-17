@@ -60,5 +60,16 @@ PROFILE
 echo "--- check"
 node --version
 git --version
-command -v opencode
-opencode --version
+# The stock Box ships an OpenCode 1 CLI at /opt/runner/bin (a symlink to the
+# platform's runner tooling), and plain `sh` finds that one first. The factory
+# always runs the agent as a fresh login shell, where /etc/profile.d/opencode.sh
+# puts the pinned v2 first — so assert THAT context. (The build shell itself
+# started before the profile file existed, so it still has the old PATH.)
+echo "this (build) shell finds: $(command -v opencode) ($(opencode --version 2>/dev/null | head -n 1))"
+login_bin="$(bash -lc 'command -v opencode')"
+login_version="$(bash -lc 'opencode --version' | head -n 1)"
+echo "a fresh login shell (what the agent gets) finds: $login_bin ($login_version)"
+case "$login_version" in
+  *2.0.31*) echo "ok: the agent's login shell gets the pinned OpenCode" ;;
+  *) echo "ERROR: a login shell does not resolve the pinned OpenCode (wanted 2.0.31, got: $login_version)" >&2; exit 1 ;;
+esac

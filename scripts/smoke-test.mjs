@@ -10,7 +10,7 @@
 // seconds earlier and holds nothing. With --keep it is paused instead, and
 // scripts/box-exec.mjs can reach it by its name.
 import { loadConfig } from "../src/config.mjs"
-import { sh, createAgentBox, describeBoxSettings, requireBoxSettings, imageFor, wantsBrowser, hasBrowser, browserMissingHelp } from "../src/box.mjs"
+import { sh, q, createAgentBox, describeBoxSettings, requireBoxSettings, imageFor, wantsBrowser, hasBrowser, browserMissingHelp } from "../src/box.mjs"
 import { signIn, writeJobFiles, runAgent, secretPaths } from "../src/agents.mjs"
 
 const config = loadConfig()
@@ -53,10 +53,14 @@ try {
   }
 
   // The CLI is the first word of the command, unless the config names it with "cli".
+  // Checked in a fresh login shell, because that is where the factory runs the
+  // agent (runScript uses bash -lc). A CLI that resolves only in login shells —
+  // such as this factory's pinned OpenCode v2, shadowed in plain sh by the
+  // stock Box's own /opt/runner/bin/opencode — is fine. One missing there is not.
   const binary = config.agents[agentName].cli ?? config.agents[agentName].command.trim().split(/\s+/)[0]
-  const found = await sh(box, `command -v ${binary} && ${binary} --version`, { allowFailure: true })
+  const found = await sh(box, `bash -lc ${q(`command -v ${binary} && ${binary} --version`)}`, { allowFailure: true })
   if (found.code !== 0) {
-    throw new Error(`"${binary}" is not installed in this Box. It has to go into a worker image (worker/setup.sh, Stage 6). Build that image, then run this test again: it will start from the image. To find the right install command first, run this with --keep and try it by hand with scripts/box-exec.mjs ${name} "<install command>".`)
+    throw new Error(`"${binary}" is not installed in a login shell in this Box. It has to go into a worker image (worker/setup.sh, Stage 6). Build that image, then run this test again: it will start from the image. To find the right install command first, run this with --keep and try it by hand with scripts/box-exec.mjs ${name} "<install command>".`)
   }
   console.log(`Agent CLI found:\n${found.output}`)
 
